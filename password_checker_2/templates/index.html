@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Password Strength Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    }
+
+    /* Particle background */
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+    }
+
+    .card {
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
+      padding: 2rem;
+      width: 100%;
+      max-width: 450px;
+      z-index: 2;
+      color: #fff;
+      transition: 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 0 40px rgba(0, 255, 200, 0.5);
+    }
+
+    h2 {
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .input-group input {
+      border-radius: 10px 0 0 10px;
+      border: none;
+      padding: 14px;
+    }
+
+    .btn-toggle {
+      border-radius: 0 10px 10px 0;
+      border: none;
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .progress {
+      height: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      transition: width 0.5s ease, background 0.5s ease;
+      background: linear-gradient(90deg, #ff4e50, #f9d423);
+    }
+
+    .requirement {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .requirement p {
+      margin: 5px 0;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .invalid { color: #ff6b6b; }
+    .valid { color: #00ffcc; }
+  </style>
+</head>
+<body>
+  <!-- Particle background -->
+  <canvas id="particles"></canvas>
+
+  <div class="card">
+    <h2><i class="fa-solid fa-shield-halved"></i> Password Strength Checker</h2>
+    <div class="input-group mb-3">
+      <input type="password" id="password" class="form-control" placeholder="Enter your password...">
+      <button class="btn btn-toggle" type="button" id="togglePassword"><i class="fa fa-eye"></i></button>
+    </div>
+    <div class="progress">
+      <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+    </div>
+    <div id="requirements" class="requirement mt-3"></div>
+  </div>
+
+  <script>
+    const passwordInput = document.getElementById("password");
+    const requirementsDiv = document.getElementById("requirements");
+    const togglePassword = document.getElementById("togglePassword");
+    const progressBar = document.querySelector(".progress-bar");
+
+    // Requirements
+    const requirements = [
+      { regex: /.{8,}/, message: "❌ At least 8 characters required" },
+      { regex: /[A-Z]/, message: "❌ Add uppercase letter" },
+      { regex: /[a-z]/, message: "❌ Add lowercase letter" },
+      { regex: /[0-9]/, message: "❌ Add number" },
+      { regex: /[^A-Za-z0-9]/, message: "❌ Add special symbol (!@#$)" }
+    ];
+
+    // Toggle password visibility
+    togglePassword.addEventListener("click", () => {
+      const type = passwordInput.type === "password" ? "text" : "password";
+      passwordInput.type = type;
+      togglePassword.innerHTML = type === "password" ? '<i class="fa fa-eye"></i>' : '<i class="fa fa-eye-slash"></i>';
+    });
+
+    // Check password strength
+    passwordInput.addEventListener("input", () => {
+      const value = passwordInput.value;
+      const unmet = [];
+
+      requirements.forEach(req => {
+        if (!req.regex.test(value)) {
+          unmet.push(req.message);
+        }
+      });
+
+      if (unmet.length === 0 && value.length > 0) {
+        requirementsDiv.innerHTML = "<p class='valid'><i class='fa fa-check-circle'></i> Strong password!</p>";
+      } else {
+        requirementsDiv.innerHTML = unmet.map(r => `<p class='invalid'><i class="fa fa-times-circle"></i> ${r}</p>`).join("");
+      }
+
+      const strength = requirements.length - unmet.length;
+      const percent = (strength / requirements.length) * 100;
+      progressBar.style.width = percent + "%";
+
+      if (percent < 40) {
+        progressBar.style.background = "linear-gradient(90deg, #ff4e50, #ff0000)";
+      } else if (percent < 80) {
+        progressBar.style.background = "linear-gradient(90deg, #f9d423, #ff9800)";
+      } else {
+        progressBar.style.background = "linear-gradient(90deg, #00ff87, #23d5ab)";
+      }
+    });
+
+    // Particle background
+    const canvas = document.getElementById("particles");
+    const ctx = canvas.getContext("2d");
+    let particlesArray;
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    window.addEventListener("resize", function(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      init();
+    });
+
+    class Particle {
+      constructor(x, y, size, dx, dy) {
+        this.x = x; this.y = y; this.size = size;
+        this.dx = dx; this.dy = dy;
+      }
+      draw(){
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.fill();
+      }
+      update(){
+        this.x += this.dx;
+        this.y += this.dy;
+        if(this.x > canvas.width || this.x < 0) this.dx *= -1;
+        if(this.y > canvas.height || this.y < 0) this.dy *= -1;
+        this.draw();
+      }
+    }
+
+    function init(){
+      particlesArray = [];
+      for(let i=0; i<50; i++){
+        let size = 2;
+        let x = Math.random() * canvas.width;
+        let y = Math.random() * canvas.height;
+        let dx = (Math.random() - 0.5) * 1;
+        let dy = (Math.random() - 0.5) * 1;
+        particlesArray.push(new Particle(x, y, size, dx, dy));
+      }
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(let i=0; i<particlesArray.length; i++){
+        particlesArray[i].update();
+      }
+    }
+    init(); animate();
+  </script>
+</body>
+</html>
